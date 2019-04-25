@@ -19,7 +19,8 @@ import matplotlib.pyplot as plt
 
 image_list = []		#画像情報を入れる配列
 label_list = []		#画像のラベルを入れる配列
-
+val_image_list = []     #validation用の配列
+val_label_list = []     #同上
 
 #指定したフォルダの画像をすべて読み込む➡opencvで検出、輪郭描写、背景白潰しを行う。　
 for dir in os.listdir("/home/pi/data/train/"):
@@ -41,7 +42,6 @@ for dir in os.listdir("/home/pi/data/train/"):
             filepath = dir1 + "/" + file
             #ここからopencvによる画像処理-----------------------------------------------------------------------------------------------------
             image = cv2.imread(filepath)
-            image = image[0:670, 0:768] #画像の端を少しカット
             image_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)	#画像をグレースケールに変換
             image_preprocessed = cv2.GaussianBlur(image_gray, (5, 5), 0)	#画像のぼかし
             #閾値処理
@@ -63,9 +63,55 @@ for dir in os.listdir("/home/pi/data/train/"):
             print(filepath)
             image_list.append(image / 255.)
 
+
+#validation_dataの読み込み
+for dir in os.listdir("/home/pi/data/val/"):
+    if dir == ".DS_Store":
+        continue
+
+    dir1 = "/home/pi/data/val/" + dir 
+    label = 0
+
+    if dir == "ari":    # ariはラベル0
+        label = 0
+    elif dir == "nashi": # nashiはラベル1
+        label = 1
+
+    for file in os.listdir(dir1):
+        if file != ".DS_Store":
+            # 配列label_listに正解ラベルを追加
+            label_list.append(label)
+            filepath = dir1 + "/" + file
+            #ここからopencvによる画像処理-----------------------------------------------------------------------------------------------------
+            val_image = cv2.imread(filepath)
+            val_image_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)	#画像をグレースケールに変換
+            val_image_preprocessed = cv2.GaussianBlur(image_gray, (5, 5), 0)	#画像のぼかし
+            #閾値処理
+            _, val_image_binary = cv2.threshold(image_preprocessed, 90, 255, cv2.THRESH_BINARY)
+
+            #マスク処理
+            val_img_masked = cv2.bitwise_and(image, image, mask=image_binary)   
+            black = [0,0,0]   #blackに黒色の情報
+            white = [255, 255, 255]  #whiteに白色の情報
+            val_img_masked[np.where((img_masked == black).all(axis=2))] = white   #img_maskedのblack(黒色)と一致するピクセルをwhite(白色)に変換
+            val_img_masked = cv2.cvtColor(img_masked, cv2.COLOR_BGR2RGB)		#opencvはBGRなのでRGBに変更　画層表示の際等に齟齬が生じる可能性があるのでとりあえずRGBにしておく
+            val_image = img_masked	#マスク処理した画像でimageを上書き
+            val_image = cv2.resize(image, (32, 32))		#画像の縮小
+            #画像処理終了-------------------------------------------------------------------------------------------------------------------------
+            
+            #画像をnumpy配列に
+            val_image = np.array(image)
+            print(val_image.shape)
+            print(filepath)
+            val_image_list.append(image / 255.)
+
+
+
+
 image_list = np.array(image_list)
 label_list = to_categorical(label_list)
-
+val_image_list = np.array(val_image_list)
+val_label_list = to_categorical(val_label_list)
 
 model = Sequential()
 model.add(Conv2D(32, (3,3), padding="same", input_shape=(32,32,3)))
@@ -91,7 +137,7 @@ adam = Adam(lr=1e-4)
 
 model.compile(optimizer=adam, loss='categorical_crossentropy', metrics=["accuracy"])
 
-history = model.fit(image_list, label_list, epochs=15, batch_size=100, validation_split=0.1)
+history = model.fit(image_list, label_list, epochs=15, batch_size=100, validation_data(val_image_list, val_label_list))
 
 model.save("akaten_learn_model.h5")
 
@@ -119,7 +165,7 @@ ok_count = 0.
 image_list = []
 label_list = []
 
-for dir in os.listdir("/home/pi/data/train/"):
+for dir in os.listdir("/home/pi/data/test/"):
     if dir == ".DS_Store":
         continue
 
@@ -138,7 +184,6 @@ for dir in os.listdir("/home/pi/data/train/"):
             filepath = dir1 + "/" + file
             #ここからopencvによる画像処理-----------------------------------------------------------------------------------------------------
             image = cv2.imread(filepath)
-            image = image[0:670, 0:768] #画像の端を少しカット
             image_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)	#画像をグレースケールに変換
             image_preprocessed = cv2.GaussianBlur(image_gray, (5, 5), 0)	#画像のぼかし
             #閾値処理
