@@ -47,7 +47,7 @@ for file in os.listdir("/home/pi/input"):
             bounding_img = np.copy(image)
             #cv2.imshow('image',bounding_img)
             #cv2.waitKey(0)
-            # 外接矩形の描写
+            # 外接矩形の描写（回転考慮）
             for contour in large_contours:
                   rect = cv2.minAreaRect(contour)
                   center, size, angle = rect
@@ -79,7 +79,7 @@ for file in os.listdir("/home/pi/input"):
             """  
             
             
-            if crop.shape[0] > 150 or crop.shape[1] >150:
+            if crop.shape[0] > 150 or crop.shape[1] >150:       #切り取った外接矩形が辺が150以上かどうかで合成する黒背景のサイズを分ける
                   haikei_path = '/home/pi/gazou/背景集/kuro256.jpg'
             else:
                   haikei_path = '/home/pi/gazou/背景集/kuro.jpg'
