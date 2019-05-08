@@ -22,7 +22,7 @@ import sys
 from picamera import PiCamera
 from time import sleep
 
-model = load_model('akaten_learn_model.h5')
+model = load_model('akaten_learn_model.h5')	#使う学習モデルの指定
 kanri = 0
 count = 1
 
@@ -48,7 +48,7 @@ def create_image(image):
 	_, origin_binary = cv2.threshold(preprocessed, 110, 255, cv2.THRESH_BINARY)
 
 	# 色の反転
-	#coins_binary = cv2.bitwise_not(coins_binary)
+	#coins_binary = cv2.bitwise_not(coins_binary)	#二値画像反転用　通常：物が白、背景が黒　挿入：物が黒、背景が白
 
 	# 輪郭検出
 	_, origin_contours, _ = cv2.findContours(origin_binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -72,7 +72,7 @@ def create_image(image):
 	bounding_img = np.copy(image)
 	#cv2.imshow('image',bounding_img)
 	#cv2.waitKey(0)
-	# 外接矩形の描写
+	# 外接矩形の描写（回転考慮）
 	for contour in large_contours:
 		rect = cv2.minAreaRect(contour)
 		center, size, angle = rect
@@ -101,7 +101,7 @@ def create_image(image):
 		#print(crop.shape)
 		i = i + 1
     """
-	if crop.shape[0] > 150 or crop.shape[1] > 150:
+	if crop.shape[0] > 150 or crop.shape[1] > 150:	#学習の際の画像と同じように外接矩形のサイズによって、背景のサイズを分ける
 		haikei_path = '/home/pi/gazou/背景集/kuro256.jpg'
 	else:
 		haikei_path = '/home/pi/gazou/背景集/kuro.jpg'
@@ -116,9 +116,10 @@ def create_image(image):
 	gousei_size = gousei.shape[:2]
 	hantei_size = gousei2.shape[:2]
 
-	if hantei_size[0] > gousei_size[0] or hantei_size[1] > gousei_size[1]:
+	if hantei_size[0] > gousei_size[0] or hantei_size[1] > gousei_size[1]:	#背景画像より切り抜いた画像が大きい場合にプログラムを停止
 		raise Exception("img is larger than size")
-
+		
+	#切り抜いた画像を背景画像の中心に貼り付ける
 	row = (gousei_size[1] - hantei_size[0]) // 2
 	col = (gousei_size[0] - hantei_size[1]) // 2
 	gousei[row:(row + hantei_size[0]), col:(col + hantei_size[1])] = gousei2
